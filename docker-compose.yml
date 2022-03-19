@@ -1,0 +1,68 @@
+version: "3.9"
+
+services:
+  wordpress:
+    image: "wordpress:5.9"
+    restart: always
+    ports:
+      - "${WORDPRESS_PORT:-80}:80"
+    env_file: ".env"
+    volumes:
+      - wp_data:/var/www/html
+    depends_on:
+      - db
+      - redis
+      - mailhog
+
+  wordpress-cli:
+    image: wordpress:cli
+    env_file: .env
+    volumes:
+      - wp_data:/var/www/html
+      - ./php.ini:/usr/local/etc/php/conf.d/phpconf.ini
+      - ./plugins:/var/www/html/wp-content/plugins
+      - ./themes:/var/www/html/wp-content/themes
+      - ./uploads:/var/www/html/wp-content/uploads
+    entrypoint: wp
+    working_dir: /var/www/html
+    depends_on:
+      - wordpress
+    profiles:
+      - donotstart
+
+  db:
+    image: "mariadb:10.8"
+    restart: always
+    env_file: ".env"
+    ports:
+      - "${MYSQL_PORT:-3306}:3006"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: [ 'CMD', 'mysqladmin', 'ping', '-u', '${MYSQL_USER}', '-p${MYSQL_PASSWORD?REQUIRED}' ]
+      interval: 1m
+      timeout: 10s
+      retries: 5
+
+  redis:
+    image: "redis:6.2"
+    env_file: .env
+    restart: always
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ 'CMD', 'redis-cli', 'ping' ]
+      interval: 5m
+      timeout: 10s
+      retries: 5
+
+  mailhog:
+    image: "mailhog/mailhog"
+    ports:
+      - "${MAILHOG_SMTP_PORT:-1025}:1025"
+      - "${MAILHOG_WEB_PORT:-8025}:8025"
+
+volumes:
+  wp_data:
+  db_data:
+  redis_data:
