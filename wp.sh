@@ -14,8 +14,9 @@ show_commands() {
     echo "Supported commands:"
     echo "${colour_bold}cli <COMMAND>${colour_normal} runs wp-cli"
     echo "${colour_bold}url:set <OLD-URL> <NEW-URL>${colour_normal} changes url"
-    echo "${colour_bold}sql:import <PATH>${colour_normal} runs imports SQL from path"
-    echo "${colour_bold}sql:export <PATH>${colour_normal} create new SQL file"
+    echo "${colour_bold}db:import <PATH>${colour_normal} runs imports SQL from path"
+    echo "${colour_bold}db:export <PATH>${colour_normal} create new SQL file"
+    echo "${colour_bold}db:reset <PATH>${colour_normal} recreate db"
 }
 
 if [ $# = 0 ] ; then
@@ -37,7 +38,7 @@ case $1 in
         exit
     ;;
 
-    sql:import)
+    db:import)
         shift 1
         SQL_FILENAME="$@"
         if [ -f "$SQL_FILENAME" ]; then
@@ -50,10 +51,16 @@ case $1 in
         exit
     ;;
 
-    sql:export)
+    db:export)
         shift 1
         SQL_FILENAME="backup-$(date +%s).sql"
         docker-compose exec db /bin/bash -c "mysqldump -u $WORDPRESS_DB_USER -p$WORDPRESS_DB_PASSWORD $WORDPRESS_DB_NAME > /sql/$SQL_FILENAME"
+        exit
+    ;;
+
+    db:reset)
+        docker-compose exec db mysql -u "$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PASSWORD" -e "drop database $WORDPRESS_DB_NAME"
+        docker-compose exec db mysql -u "$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PASSWORD" -e "create database $WORDPRESS_DB_NAME"
         exit
     ;;
 
