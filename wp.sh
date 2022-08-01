@@ -17,6 +17,7 @@ show_commands() {
     echo "${colour_bold}db:import <PATH>${colour_normal} runs imports SQL from path"
     echo "${colour_bold}db:export <PATH>${colour_normal} create new SQL file"
     echo "${colour_bold}db:reset <PATH>${colour_normal} recreate db"
+    echo "${colour_bold}build ${colour_normal} create production with correct file structure"
 }
 
 if [ $# = 0 ] ; then
@@ -61,6 +62,35 @@ case $1 in
     db:reset)
         docker-compose exec db mysql -u "$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PASSWORD" -e "drop database $WORDPRESS_DB_NAME"
         docker-compose exec db mysql -u "$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PASSWORD" -e "create database $WORDPRESS_DB_NAME"
+        exit
+    ;;
+
+    build)
+        WORDPRESS_FILENAME="wordpress-$WORDPRESS_VERSION.zip"
+        WORDPRESS_URL="https://wordpress.org/$WORDPRESS_FILENAME"
+        WORDPRESS_BUILD_PATH="./build/$WORDPRESS_VERSION"
+
+        if [ ! -f "./build/$WORDPRESS_FILENAME" ]; then
+            wget "$WORDPRESS_URL" -O "./build/$WORDPRESS_FILENAME"
+        fi
+        
+        rm -rf "./build/wordpress"
+        rm -rf "./build/$WORDPRESS_VERSION"
+        unzip -q "./build/$WORDPRESS_FILENAME" -d "./build"
+        mv "./build/wordpress" "$WORDPRESS_BUILD_PATH"
+        
+        rm -rf "$WORDPRESS_BUILD_PATH/wp-content/themes/twentytwenty"
+        rm -rf "$WORDPRESS_BUILD_PATH/wp-content/themes/twentytwentyone"
+        rm -rf "$WORDPRESS_BUILD_PATH/wp-content/themes/twentytwentytwo"
+        rm -rf "$WORDPRESS_BUILD_PATH/wp-content/themes/twentytwentytwo"
+        
+        rm -rf "$WORDPRESS_BUILD_PATH/wp-content/plugins/akismet"
+        rm -rf "$WORDPRESS_BUILD_PATH/wp-content/plugins/hello.php"
+
+        cp -r ./plugins "$WORDPRESS_BUILD_PATH/wp-content"
+        cp -r ./themes "$WORDPRESS_BUILD_PATH/wp-content"
+        cp -r ./uploads "$WORDPRESS_BUILD_PATH/wp-content"
+
         exit
     ;;
 
